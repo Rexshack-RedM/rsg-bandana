@@ -1,9 +1,9 @@
-lib.locale()
+local RSGCore = exports['rsg-core']:GetCoreObject()
 
 local busy, lastToggle = false, 0
 
 local function notify(msg, kind)
-    lib.notify({ title = locale('title'), description = msg, type = kind or 'inform' })
+    RSGCore.Functions.Notify({ title = locale('title'), description = msg, type = kind or 'inform' })
 end
 
 -- Find the neckwear item the ped is wearing (works for mp_male and mp_female).
@@ -27,9 +27,20 @@ local function getNeckwear(ped)
     return nil
 end
 
+local function u32(v) return v and (v & 0xFFFFFFFF) or 0 end
+
+-- Female peds don't always report back the exact StateUp hash after it is applied
+-- (the game remaps it to a female variant), so anything that isn't the "down"
+-- state counts as up. The statebag is used as a fallback.
 local function isUp(ped)
     local comp, state = getNeckwear(ped)
-    return comp ~= nil and state == Config.StateUp, comp
+    if not comp then return false, nil end
+    local s = u32(state)
+    if s == u32(Config.StateUp) then return true, comp end
+    if s == 0 or s == u32(Config.StateDown) then
+        return LocalPlayer.state.bandana == true and s == 0, comp
+    end
+    return true, comp
 end
 
 -- Some RedM natives return 0/1 instead of false/true, and 0 is truthy in Lua
@@ -46,6 +57,13 @@ end
 -- Swap the wearable state and keep the statebag in sync
 local function applyState(ped, comp, up)
     Citizen.InvokeNative(0x66B957AAC2EAAEAB, ped, comp, up and Config.StateUp or Config.StateDown, 0, true, 1) -- _UPDATE_SHOP_ITEM_WEARABLE_STATE
+    if not up then
+        -- female peds can ignore BASE; fall back to clearing the wearable state
+        local _, state = getNeckwear(ped)
+        if u32(state) ~= u32(Config.StateDown) and u32(state) ~= 0 then
+            Citizen.InvokeNative(0x66B957AAC2EAAEAB, ped, comp, 0, 0, true, 1)
+        end
+    end
     Citizen.InvokeNative(0xCC8CA3E88256E58F, ped, false, true, true, true, false) -- _UPDATE_PED_VARIATION
     LocalPlayer.state:set('bandana', up, true)
 end
@@ -54,7 +72,7 @@ local function toggle()
     if busy then return end
     if GetGameTimer() - lastToggle < Config.Cooldown then return notify(locale('wait'), 'error') end
 
-    local ped = cache.ped
+    local ped = PlayerPedId()
     if not canToggle(ped) then return notify(locale('cant_now'), 'error') end
 
     local up, comp = isUp(ped)
@@ -67,7 +85,7 @@ local function toggle()
         Citizen.InvokeNative(0xAE72E7DF013AAA61, ped, 0, yes(IsPedOnMount(ped)) and set.mounted or set.foot, 1, 0, -1.0) -- START_TASK_ITEM_INTERACTION
         Wait(Config.AnimTime)
         -- player may have died / been cuffed / changed clothes during the animation
-        if ped ~= cache.ped or not canToggle(ped) or select(2, isUp(ped)) ~= comp then
+        if ped ~= PlayerPedId() or not canToggle(ped) or select(2, isUp(ped)) ~= comp then
             ClearPedTasks(ped)
             busy = false
             return notify(locale('cant_now'), 'error')
@@ -84,17 +102,18 @@ RegisterNetEvent('rsg-bandana:client:toggle', toggle)
 -- Other resources: exports['rsg-bandana']:IsWearingBandana()
 -- Reads the real ped state, so it stays correct after wardrobe changes.
 exports('IsWearingBandana', function()
-    return (isUp(cache.ped))
+    return (isUp(PlayerPedId()))
 end)
 
 -- Clothing reloads (relog) reset the wearable state, keep the statebag honest
-AddEventHandler('RSGCore:Client:OnPlayerLoaded', function()
-    LocalPlayer.state:set('bandana', false, true)
-end)
+local function resetState() LocalPlayer.state:set('bandana', false, true) end
+RegisterNetEvent('RSGCore:Client:OnPlayerLoaded', resetState)
+RegisterNetEvent('RSGCore:Client:OnPlayerUnload', resetState)
 
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
-    local up, comp = isUp(cache.ped)
-    if up then applyState(cache.ped, comp, false) end
-    LocalPlayer.state:set('bandana', false, true)
+    local ped = PlayerPedId()
+    local up, comp = isUp(ped)
+    if up then applyState(ped, comp, false) end
+    resetState()
 end)

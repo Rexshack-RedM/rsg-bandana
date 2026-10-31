@@ -16,18 +16,19 @@ Raise and lower your bandana on RSG Framework (RedM). Works for male and female 
 - Statebag: `Player(src).state.bandana` (server) / `LocalPlayer.state.bandana` (client). Convenient for display, but it is set by the client, so don't trust it for anything a cheater would want to spoof.
 
 ## Requirements
-- rsg-core, ox_lib
+- rsg-core (no ox_lib needed)
 - The player must be wearing bandana-type neckwear (e.g. from rsg-wardrobe)
 
 ## Install
-1. Drop `rsg-bandana` into your resources and `ensure rsg-bandana` after rsg-core and ox_lib.
+1. Drop `rsg-bandana` into your resources and `ensure rsg-bandana` after rsg-core.
 2. (Optional) set `Config.UseItem = true` and add a `bandana` item to rsg-core items.
 
 ## Changelog
+- **3.0.4** - notifications now use rsg-core instead of ox_lib, removed ox_lib completely (locales now load via rsg-core's `shared/locale.lua`), statebag also reset on logout / character switch.
 - **3.0.1** - blocked toggling before login (statebag `isLoggedIn` nil was treated as logged in), animation is cancelled if the toggle is aborted, small allocation clean-up in the neckwear scan.
 
 ## Languages
-en, de, el, es, fr, ja, nl, pl, pt-br, ro. ox_lib picks the language from the `ox:locale` convar, e.g. `setr ox:locale de` in server.cfg.
+en, de, el, es, fr, ja, nl, pl, pt-br, ro. rsg-core picks the language from the `rsg:locale` convar (falls back to `ox:locale`, then `en`), e.g. `setr rsg:locale de` in server.cfg.
 
 ## Config
 | Option | Default | Description |

@@ -1,5 +1,4 @@
 local RSGCore = exports['rsg-core']:GetCoreObject()
-lib.locale()
 
 RSGCore.Commands.Add(Config.Command, locale('cmd_help'), {}, false, function(source)
     TriggerClientEvent('rsg-bandana:client:toggle', source)
