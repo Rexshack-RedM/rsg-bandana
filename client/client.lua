@@ -29,18 +29,18 @@ end
 
 local function u32(v) return v and (v & 0xFFFFFFFF) or 0 end
 
--- Female peds don't always report back the exact StateUp hash after it is applied
--- (the game remaps it to a female variant), so anything that isn't the "down"
--- state counts as up. The statebag is used as a fallback.
+-- Only the exact StateUp hash is trusted as "up". Any other state the game reports
+-- (0, BASE, or a remapped/default variant hash) falls back to the statebag, so an
+-- unknown default state no longer gets mistaken for "up" (which made /bandana
+-- always try to lower it).
 local function isUp(ped)
     local comp, state = getNeckwear(ped)
     if not comp then return false, nil end
     local s = u32(state)
+    if Config.Debug then print(('[rsg-bandana] comp=%s state=%s bag=%s'):format(u32(comp), s, tostring(LocalPlayer.state.bandana))) end
     if s == u32(Config.StateUp) then return true, comp end
-    if s == 0 or s == u32(Config.StateDown) then
-        return LocalPlayer.state.bandana == true and s == 0, comp
-    end
-    return true, comp
+    if s == u32(Config.StateDown) then return false, comp end
+    return LocalPlayer.state.bandana == true, comp
 end
 
 -- Some RedM natives return 0/1 instead of false/true, and 0 is truthy in Lua

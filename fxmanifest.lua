@@ -4,7 +4,7 @@ game 'rdr3'
 lua54 'yes'
 
 description 'rsg-bandana - raise / lower your bandana (male & female)'
-version '3.0.2'
+version '3.0.3'
 
 shared_scripts {
     '@rsg-core/shared/locale.lua',
