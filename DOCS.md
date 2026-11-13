@@ -60,4 +60,4 @@
 | Toggles too slowly | Lower `Cooldown` |
 | Wrong state after clothing change | Use the export instead of the state bag |
 
-Support: https://buymeacoffee.com/rexshack
+Support the Project : https://rexshack.tebex.store/
